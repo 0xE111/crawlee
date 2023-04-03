@@ -63,7 +63,7 @@ class TelegraphParser:
 
         if not search_term.isascii():
             search_term = translit(search_term, reversed=True)
-        search_term = search_term.replace(' ', '-')
+        search_term = search_term.replace(' ', '-').replace("'", '')
 
         log.debug('Running search for: %s', search_term)
 
