@@ -1,0 +1,6 @@
+aiohttp
+beautifulsoup4
+click
+transliterate
+aiogram~=3.0.0
+environs
