@@ -30,7 +30,7 @@ async def command_handler(message: Message):
     if message.text == "/start":
         await message.answer('This bot scans https://telegra.ph for articles with any title you specify.')
         await message.answer('IMPORTANT! This bot only does the scan and sends URLS back to user. The bot is not responsible for any content posted on the site. All the posts retrieved by bot are public and can be viewed by anyone on the internet. Please address website owners if you find any inappropriate content.')
-        await message.answer(f'Wanna contribute or self-host? Visit {GITHUB_URL}')
+        await message.answer(f'Wanna more options / contribute / self-host? Visit {GITHUB_URL}')
         await message.answer('Please enter search phrase and wait for search to complete. Shorter phrases are more likely to be found.')
         return
 
