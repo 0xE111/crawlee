@@ -24,15 +24,20 @@ class Page:
         return self.url
 
     @cached_property
+    def title(self) -> str:
+        return self.soup.find('h1').get_text()
+
+    @cached_property
     def plain_text(self) -> str:
         return self.soup.get_text(' ')
 
     @property
     def normalized_text(self) -> str:
-        return re.sub('(\n\s*){2,}', '\n', self.plain_text)
+        return re.sub(r'(\n\s*){2,}', '\n', self.plain_text)
 
     def as_text(self) -> str:
         return '\n'.join([
+            self.title,
             self.url,
             self.normalized_text,
         ])
@@ -54,7 +59,7 @@ class TelegraphParser:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.session.close()
 
-    async def iter_pages(self, search_term: str) -> Iterator[Any]:
+    async def iter_pages(self, search_term: str, limit: int | None = None) -> Iterator[Any]:
 
         if not search_term.isascii():
             search_term = translit(search_term, reversed=True)
@@ -62,17 +67,25 @@ class TelegraphParser:
 
         log.debug('Running search for: %s', search_term)
 
-        coros = [
-            self.iter_pages_for_url(url)
+        tasks = [
+            asyncio.create_task(self.iter_pages_for_url(url))
             for month, day in product(range(1, 13), range(1, 32))
             if (url := f'{self.BASE_URL}/{search_term}-{month:02}-{day:02}')
         ]
 
-        for coro in asyncio.as_completed(coros):
-            pages = await coro
+        num_yielded = 0
+        for task in asyncio.as_completed(tasks):
+            pages = await task
             for page in pages:
                 yield page
+                num_yielded += 1
+                if limit and num_yielded >= limit:
+                    break
 
+            if limit and num_yielded >= limit:
+                for task_ in tasks:
+                    task_.cancel()
+                break
 
     async def iter_pages_for_url(self, url: str) -> list[Page]:
         log.debug('Checking suffixes for %s', url)

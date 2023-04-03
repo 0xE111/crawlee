@@ -2,5 +2,5 @@ aiohttp
 beautifulsoup4
 click
 transliterate
-aiogram~=3.0.0
+aiogram==3.0.0b7
 environs

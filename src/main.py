@@ -22,6 +22,7 @@ def as_sync(f):
 @click.argument('search-term')
 @click.option('--text-contains')
 @click.option('--html-contains')
+@click.option('--limit', type=int)
 @click.option('--log-level', type=click.Choice(logging._nameToLevel.keys()), default='INFO')
 @click.option('--out-format', type=click.Choice(['text', 'jsonl', 'url', 'mute']), default='text')
 @as_sync
@@ -29,6 +30,7 @@ async def main(
     search_term: str,
     text_contains: str | None,
     html_contains: str | None,
+    limit: int | None,
     log_level: str,
     out_format: str,
 ):
@@ -39,7 +41,7 @@ async def main(
 
     pages_found, pages_matched = 0, 0
     async with TelegraphParser() as telegraph:
-        async for page in telegraph.iter_pages(search_term=search_term):
+        async for page in telegraph.iter_pages(search_term=search_term, limit=limit):
             pages_found += 1
 
             if re_text_contains and not re_text_contains.search(page.plain_text):
