@@ -19,7 +19,6 @@ dp = Dispatcher()
 bot = Bot(TELEGRAM_BOT_TOKEN, parse_mode="HTML")
 
 
-# @dp.message(commands={"start"})
 @dp.message()
 async def command_handler(message: Message):
     user = message.from_user
@@ -29,7 +28,8 @@ async def command_handler(message: Message):
         await bot.forward_message(TELEGRAM_ADMIN_ID, message.chat.id, message.message_id)
 
     if message.text == "/start":
-        await message.answer('This bot scans https://telegra.ph for articles with any title you specify. This bot only does the scan and is not responsible for any content posted on the site.')
+        await message.answer('This bot scans https://telegra.ph for articles with any title you specify.')
+        await message.answer('IMPORTANT! This bot only does the scan and sends URLS back to user. The bot is not responsible for any content posted on the site. All the posts retrieved by bot are public and can be viewed by anyone on the internet. Please address website owners if you find any inappropriate content.')
         await message.answer(f'Wanna contribute or self-host? Visit {GITHUB_URL}')
         await message.answer('Please enter search phrase and wait for search to complete. Shorter phrases are more likely to be found.')
         return
