@@ -20,9 +20,9 @@ def as_sync(f):
 
 @click.command()
 @click.argument('search-term')
-@click.option('--text-contains')
-@click.option('--html-contains')
-@click.option('--limit', type=int)
+@click.option('--text-contains', help='Text on the page should contain this value (may use regex)')
+@click.option('--html-contains', help='HTML sources of the page should contain this value (may use regex)')
+@click.option('--limit', type=int, help='Maximum number of results to return')
 @click.option('--log-level', type=click.Choice(logging._nameToLevel.keys()), default='INFO')
 @click.option('--out-format', type=click.Choice(['text', 'jsonl', 'url', 'mute']), default='text')
 @as_sync
