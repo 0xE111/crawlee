@@ -10,8 +10,6 @@ The search is performed by checking user notes with the title you request. For e
 
 # How to run
 
-Visit https://t.me/crawlee_bot
-
 ```sh
 git clone https://github.com/c0ntribut0r/crawlee.git
 cd crawlee
