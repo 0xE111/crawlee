@@ -41,11 +41,8 @@ async def command_handler(message: Message):
     try:
         async with TelegraphParser() as telegraph:
             await message.answer('Searching...')
-
-            i = 1
             async for page in telegraph.iter_pages(search_term=message.text, limit=SEARCH_LIMIT):
                 await message.answer(page.url)
-                i += 1
 
             await message.answer('Search complete. Enter another phrase to search')
 
