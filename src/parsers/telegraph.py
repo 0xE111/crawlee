@@ -88,19 +88,19 @@ class TelegraphParser:
                 break
 
     async def iter_pages_for_url(self, url: str) -> list[Page]:
-        log.debug('Checking suffixes for %s', url)
+        # log.debug('Checking suffixes for %s', url)
         pages = []
 
         suffix_number = 1
         while True:
             suffix = f'-{suffix_number}' if suffix_number > 1 else ''
             url_with_suffix = f'{url}{suffix}'
-            log.debug('Probing %s', url_with_suffix)
+            # log.debug('Probing %s', url_with_suffix)
             async with self.session.get(url_with_suffix) as response:
                 if response.status == 404:
                     break
                 response.raise_for_status()
-                log.debug('Found existing url %s', url_with_suffix)
+                # log.debug('Found existing url %s', url_with_suffix)
                 html = await response.text()
 
             soup = BeautifulSoup(html, features='html.parser')

@@ -1,9 +1,11 @@
 import logging
 
+import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 from parsers.telegraph import TelegraphParser
 from environs import Env
+import random
 
 log = logging.getLogger(__name__)
 
@@ -13,10 +15,12 @@ TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN')
 TELEGRAM_ADMIN_ID = env.int('TELEGRAM_ADMIN_ID')
 GITHUB_URL = env('GITHUB_URL')
 SEARCH_LIMIT = env.int('SEARCH_LIMIT', default=10)
+BLACKLIST = env.list('BLACKLIST', default=[])
 
 
 dp = Dispatcher()
 bot = Bot(TELEGRAM_BOT_TOKEN, parse_mode="HTML")
+queue = asyncio.Queue(maxsize=128)
 
 
 @dp.message()
@@ -39,16 +43,49 @@ async def command_handler(message: Message):
         return
 
     try:
-        async with TelegraphParser() as telegraph:
-            await message.answer('Searching...')
-            async for page in telegraph.iter_pages(search_term=message.text, limit=SEARCH_LIMIT):
-                await message.answer(page.url)
+        queue_size = queue.qsize()
+        if queue_size == 0:
+            await message.answer('Processing your request...')
+        else:
+            await message.answer(f'Added your request to queue, please wait. Your queue number: {queue_size+1}')
+        queue.put_nowait(message)
 
-            await message.answer('Search complete. Enter another phrase to search')
+    except queue.Full:
+        await message.answer('Sorry, the queue is full. Please try again later.')
 
-    except Exception:
-        log.exception(message.text)
-        await message.answer('Oops! Something went wrong. Please try again later.')
+
+async def process_queue():
+    log.debug('Listening for messages...')
+    blacklist_lowered = [word.lower() for word in BLACKLIST]
+
+    async with TelegraphParser() as telegraph:
+        while True:
+            message: Message = await queue.get()
+            user_id = message.from_user.id
+            log.debug('Processing message by %s: %s', message.from_user, message.text)
+            try:
+                if any(word in message.text.lower() for word in blacklist_lowered):
+                    await asyncio.sleep(random.randint(3, 10))
+                else:
+                    async for page in telegraph.iter_pages(search_term=message.text, limit=SEARCH_LIMIT):
+                        await bot.send_message(
+                            user_id,
+                            page.url,
+                            disable_web_page_preview='<img' in page.html and user_id != TELEGRAM_ADMIN_ID,
+                        )
+                await bot.send_message(user_id, 'Search complete. Enter another phrase to search')
+
+            except Exception:
+                log.exception(message.text)
+                await message.answer('Oops! Something went wrong. Please try again later.')
+
+            queue.task_done()
+
+
+async def main():
+    loop = asyncio.get_event_loop()
+    _ = loop.create_task(process_queue())
+    await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
@@ -56,4 +93,4 @@ if __name__ == '__main__':
         format='%(asctime)s %(levelname)s %(message)s',
         level=logging.DEBUG,
     )
-    dp.run_polling(bot)
+    asyncio.run(main())
