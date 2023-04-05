@@ -23,6 +23,13 @@ bot = Bot(TELEGRAM_BOT_TOKEN, parse_mode="HTML")
 queue = asyncio.Queue(maxsize=128)
 
 
+blacklist_lowered = [word.lower() for word in BLACKLIST]
+
+
+def is_nsfw(text: str) -> bool:
+    return any(word in text.lower() for word in blacklist_lowered)
+
+
 @dp.message()
 async def command_handler(message: Message):
     user = message.from_user
@@ -56,23 +63,30 @@ async def command_handler(message: Message):
 
 async def process_queue():
     log.debug('Listening for messages...')
-    blacklist_lowered = [word.lower() for word in BLACKLIST]
 
     async with TelegraphParser() as telegraph:
         while True:
             message: Message = await queue.get()
             user_id = message.from_user.id
-            log.debug('Processing message by %s: %s', message.from_user, message.text)
+            log.debug('<- %s: %s', message.from_user, message.text)
             try:
-                if any(word in message.text.lower() for word in blacklist_lowered):
+                if is_nsfw(message.text):  # and user_id != TELEGRAM_ADMIN_ID:
+                    log.debug('-> %s: %s', message.from_user, '(NSFW request dropped)')
                     await asyncio.sleep(random.randint(3, 10))
                 else:
                     async for page in telegraph.iter_pages(search_term=message.text, limit=SEARCH_LIMIT):
+                        if is_nsfw(page.title) or is_nsfw(page.plain_text):  # and user_id != TELEGRAM_ADMIN_ID:
+                            log.debug('-> %s: %s', message.from_user, '(NSFW response dropped)')
+                            continue
+
+                        log.debug('-> %s: %s', message.from_user, page.url)
                         await bot.send_message(
                             user_id,
                             page.url,
                             disable_web_page_preview='<img' in page.html and user_id != TELEGRAM_ADMIN_ID,
                         )
+                        if user_id != TELEGRAM_ADMIN_ID:
+                            await bot.send_message(TELEGRAM_ADMIN_ID, page.url)
                 await bot.send_message(user_id, 'Search complete. Enter another phrase to search')
 
             except Exception:
